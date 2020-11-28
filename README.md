@@ -28,6 +28,11 @@ __(1)__ Buatlah topologi jaringan seperti gambar berikut!
 ![topologi_modul3](https://user-images.githubusercontent.com/61267430/100487809-25179280-313d-11eb-8c4f-700a8b9f1817.png) 
 Pertama-tama, kita lakukan setting uml. Berikut merupakan setting pada __topologi.sh__  
 ![topologi sh](https://user-images.githubusercontent.com/61267430/100524110-e5f24b80-31e7-11eb-9652-0433eb48ae16.PNG) 
+Kemudian kita setting network interfaces pada setiap UML, lalu kita enable IPv4 forwarding pada DHCP Server dan Relay:    
+DHCP Server (Tuban)   
+![settingipv4_tuban](https://user-images.githubusercontent.com/61267430/100525996-90be3600-31f7-11eb-9b13-f8f2e1939d00.PNG)   
+DHCP Relay (Surabaya)   
+![IPV4_Surabaya_sysctlconf](https://user-images.githubusercontent.com/61267430/100526017-d4b13b00-31f7-11eb-872c-fa994ed1e3da.png)    
 
 __(2)__ Setting __Surabaya__ agar menjadi __DHCP Relay__ antara DHCP Server dan Client! 
 Pada DHCP Relay yaitu Surabaya kita install DHCP Relay dengan `apt-get install isc-dhcp-relay`. Kemudian kita `nano /etc/default/isc-dhcp-relay`  
@@ -77,7 +82,8 @@ __(7)__ Setting user autentikasi proxy dengan format:
 - User : userta_t09 
 - Password : inipassw0rdta_t09  
 Pertama-tama sebelum kita pasang autentikasi kita harus menginstall squid dan apache2-utils dengan `apt-get install squid` dan `apt-get install apache2-utils`. Kemudian kita gunakan command `htpasswd -c /etc/squid/passwd userta_t09` dan ketika diminta memasukkan password kita masukkan `inipassw0rdta_t09`. Berikut isi dari `/etc/squid/htpasswd`.    
-![settingpasswdsquid_mojokerto](https://user-images.githubusercontent.com/61267430/100524791-a3cc0880-31ed-11eb-87f3-c88ab6327cc7.PNG)    
+![settingpasswdsquid_mojokerto](https://user-images.githubusercontent.com/61267430/100524791-a3cc0880-31ed-11eb-87f3-c88ab6327cc7.PNG)  
+
 Kemudian kita setting konfigurasi squid dengan `nano /etc/squid/squid.conf`   
 __Setting squid.conf__    
 ![settingsquidconft_mojokerto](https://user-images.githubusercontent.com/61267430/100524823-f86f8380-31ed-11eb-9cbb-5d5579a43ac6.PNG)   
@@ -93,7 +99,9 @@ __Penjelasan squid.conf__:
 `http_reply_access deny GOOGLE`               -> Deny reply dari acl `GOOGLE`    
 `deny_info ERR_ACCESS_DENIED all`             -> Error page ketika mengakses di luar waktu yang ditentukan ada pada ERR_ACCESS_DENIED    
 `http_access allow USERS MONDSTADT`           -> Membolehkan akses untuk acl `USERS` dan `MONDSTADT`   
-`http_access deny all`                        -> Kecuali untuk yang sudah diperbolehkan diatas, maka deny semua (direpresantisakan acl `all`).
+`http_access deny all`                        -> Kecuali untuk yang sudah diperbolehkan diatas, maka deny semua (direpresantisakan acl `all`).    
+Prompt user authentication ketika membuka browser dengan proxy:   
+![userauth_test](https://user-images.githubusercontent.com/61267430/100525971-2c02db80-31f7-11eb-8ddd-405b72c09795.png)   
 
 __(8)__ Setting agar proxy hanya dapat diakses pada hari __Selasa-Rabu__ pukul __13.00-18.00__  
 Kita buat konfigurasi acl pada `/etc/squid/acl.conf` seperti berikut    
@@ -109,20 +117,32 @@ Pada baris ketiga, kita deklarasikan `acl` bernama `MONDSTADT` dengan tipe `time
 __(10)__ Setting agar ketika user ingin mengakses __google.com__ akan di redirect ke __monta.if.its.ac.id__   
 Kita deklarasikan `acl` bernama `GOOGLE` dengan `dstdomain google.com` pada `/etc/squid/acl.conf`.    
 ![settingaclsquid_mojokerto](https://user-images.githubusercontent.com/61267430/100524863-45535a00-31ee-11eb-83f7-66a34511eb01.PNG)  
+
 Lalu kita tambahkan setting berikut pada `/etc/squid/squid.conf`    
 ![REDIRECT](https://user-images.githubusercontent.com/61267430/100524980-8730d000-31ef-11eb-878a-bd1f1e8cde78.png)    
+
+Hasil redirect pada jam yang telah ditentukan:   
+![hasil_redirect](https://user-images.githubusercontent.com/61267430/100525950-ef36e480-31f6-11eb-9c42-3f7029f31f3d.png)    
 
 __(11)__ Mengubah __error page default squid__ ke page custom yang telah disediakan 
 Pertama-tama kita download custom error page dengan menggunakan command `wget 10.151.36.202/ERR_ACCESS_DENIED`. Lalu kita temukan bahwa default error page squid ada pada folder `/usr/share/squid/errors/English`.   
 Berikut lokasi error page default squid:    
 ![ERR_ACCESS_DENIED](https://user-images.githubusercontent.com/61267430/100525035-decf3b80-31ef-11eb-898c-3f84d2bed511.PNG)   
-Kemudian kita `cp -r` file yang telah kita download tadi pada file default page tersebut.   
 
+Kemudian kita `cp -r` file yang telah kita download tadi pada file default page tersebut.   
+Berikut merupakan error page yang muncul apabila kita mengakses di waktu yang salah:    
+![errorPage_salahjam](https://user-images.githubusercontent.com/61267430/100525934-c6165400-31f6-11eb-92f7-4625565f9f3e.png)    
 
 __(12)__ Setting agar ketika mengakses Proxy dapat melalui domain janganlupa-ta.t09.pw dengan port 8080
-Untuk dapat melakukan hal diatas kita harus mengkonfigurasikan DNS pada DNS Server di Malang. Kita setting zone pada `/etc/bind/named.local.conf` di Malang dengan konfigurasi seperti berikut:   
+Untuk dapat melakukan hal diatas kita harus mengkonfigurasikan DNS pada DNS Server di Malang.   
+Pertama-tama kita edit setting DNS pada `/etc/bind/named.conf.options` seperti berikut:   
+![Malang named conf options](https://user-images.githubusercontent.com/61267430/100526033-fad6db00-31f7-11eb-87bf-e3b3054fe9a1.png)   
+
+Kita setting zone pada `/etc/bind/named.local.conf` di Malang dengan konfigurasi seperti berikut:   
+![Malang namedconflocal](https://user-images.githubusercontent.com/61267430/100526037-fd393500-31f7-11eb-8e5a-ddc330906284.png)   
 
 Kemudian kita buat file konfigurasi DNS pada `/etc/bind/jarkom/janganlupa-ta.t09.pw` seperti berikut: 
 ![dnsjanganlupata_malang](https://user-images.githubusercontent.com/61267430/100525151-cd3a6380-31f0-11eb-9d77-be19a8f8ae2c.PNG)   
+
 Kemudian kita dapat mengubah settingan proxy pada browser kita seperti di bawah ini untuk mengakses proxy:    
 ![image](https://user-images.githubusercontent.com/61267430/100525171-168ab300-31f1-11eb-81a6-504e9d6e293e.png)
